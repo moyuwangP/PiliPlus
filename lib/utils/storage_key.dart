@@ -155,6 +155,9 @@ abstract final class SettingBoxKey {
       removeSafeArea = 'removeSafeArea',
       angleDegrees = 'angleDegrees',
       liveStream = 'liveStream',
+      splitScreenOnFoldable = 'splitScreenOnFoldable',
+      verticalVideoDualColumn = 'verticalVideoDualColumn',
+      verticalVideoDualColumnOnAlmostSquare = 'verticalVideoDualColumnOnAlmostSquare',
       enableDocProvider = 'enableDocProvider';
 
   static const String minimizeOnExit = 'minimizeOnExit',

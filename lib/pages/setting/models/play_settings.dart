@@ -186,6 +186,20 @@ List<SettingsModel> get playSettings => [
     defaultVal: false,
   ),
   const SwitchModel(
+    title: '竖屏视频横屏双列展示',
+    subtitle: '横屏模式下，竖屏视频（9:16）锁定为左视频右简介/评论的双列布局',
+    leading: Icon(Icons.view_column_outlined),
+    setKey: SettingBoxKey.verticalVideoDualColumn,
+    defaultVal: true,
+  ),
+  const SwitchModel(
+    title: '折叠屏竖屏展开双列展示',
+    subtitle: '7:6等方屏/竖屏展开时，竖屏视频锁定为左视频右简介/评论的双列布局',
+    leading: Icon(Icons.table_chart_outlined),
+    setKey: SettingBoxKey.verticalVideoDualColumnOnAlmostSquare,
+    defaultVal: true,
+  ),
+  const SwitchModel(
     title: '自动全屏',
     subtitle: '视频开始播放时进入全屏',
     leading: Icon(Icons.fullscreen_outlined),

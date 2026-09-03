@@ -633,6 +633,17 @@ abstract final class Pref {
     return horizontalScreen;
   }
 
+  static bool get splitScreenOnFoldable =>
+      _setting.get(SettingBoxKey.splitScreenOnFoldable, defaultValue: false);
+
+  static bool get verticalVideoDualColumn =>
+      _setting.get(SettingBoxKey.verticalVideoDualColumn, defaultValue: true);
+
+  static bool get verticalVideoDualColumnOnAlmostSquare => _setting.get(
+    SettingBoxKey.verticalVideoDualColumnOnAlmostSquare,
+    defaultValue: true,
+  );
+
   static String get banWordForDyn =>
       _setting.get(SettingBoxKey.banWordForDyn, defaultValue: '');
 

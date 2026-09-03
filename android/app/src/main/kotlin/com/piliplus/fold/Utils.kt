@@ -1,4 +1,4 @@
-package com.example.piliplus
+package com.piliplus.fold
 
 import android.os.Build
 import android.os.Bundle

@@ -77,6 +77,13 @@ List<SettingsModel> get styleSettings => [
     },
   ),
   const SwitchModel(
+    title: '折叠屏(7:6)横屏双列布局',
+    subtitle: '7:6比例设备（如部分折叠屏）横屏时，播放页使用左侧视频、右侧评论布局',
+    leading: Icon(Icons.vertical_split_outlined),
+    setKey: SettingBoxKey.splitScreenOnFoldable,
+    defaultVal: false,
+  ),
+  const SwitchModel(
     title: '改用侧边栏',
     subtitle: '开启后底栏与顶栏被替换，且相关设置失效',
     leading: Icon(Icons.chrome_reader_mode_outlined),

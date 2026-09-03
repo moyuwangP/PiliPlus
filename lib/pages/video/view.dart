@@ -41,6 +41,7 @@ import 'package:PiliPlus/pages/video/member/controller.dart';
 import 'package:PiliPlus/pages/video/member/view.dart';
 import 'package:PiliPlus/pages/video/related/view.dart';
 import 'package:PiliPlus/pages/video/reply/controller.dart';
+import 'package:PiliPlus/pages/video/reply/reply_slivers.dart';
 import 'package:PiliPlus/pages/video/reply/view.dart';
 import 'package:PiliPlus/pages/video/view_point/view.dart';
 import 'package:PiliPlus/pages/video/widgets/header_control.dart';
@@ -57,6 +58,7 @@ import 'package:PiliPlus/services/shutdown_timer_service.dart'
     show shutdownTimerService;
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/android/bindings.g.dart';
+import 'package:PiliPlus/utils/device_utils.dart';
 import 'package:PiliPlus/utils/extension/scroll_controller_ext.dart';
 import 'package:PiliPlus/utils/extension/theme_ext.dart';
 import 'package:PiliPlus/utils/image_utils.dart';
@@ -67,6 +69,7 @@ import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/theme_utils.dart';
 import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, clampDouble;
@@ -771,7 +774,12 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
   Widget childSplit(double ratio) {
     final double videoHeight = maxHeight - padding.vertical;
-    final double width = videoHeight * ratio;
+    double width = videoHeight * ratio;
+    // 如果是竖屏或近方屏展开（maxWidth较小），避免左侧视频把右侧评论区挤得太窄（保证右侧至少占40%宽度）
+    final maxAvailableVideoWidth = (maxWidth - padding.horizontal) * 0.6;
+    if (width > maxAvailableVideoWidth) {
+      width = maxAvailableVideoWidth;
+    }
     final videoWidth = isFullScreen ? maxWidth : width;
     final introWidth = maxWidth - width - padding.horizontal;
     return Row(
@@ -822,6 +830,9 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     if (enableVerticalExpand) {
       return Obx(() {
         if (videoDetailController.isVertical.value && !isPortrait) {
+          if (Pref.verticalVideoDualColumn) {
+            return childSplit(9 / 16);
+          }
           final double videoHeight = maxHeight - padding.vertical;
           final double width = videoHeight / Style.aspectRatio16x9;
           final videoWidth = isFullScreen ? maxWidth : width;
@@ -925,7 +936,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                     width: width,
                     height: introHeight,
                     needRelated: false,
-                    needCtr: false,
+                    needReply: true,
+                    needCtr: true,
                   ),
                 ),
               ),
@@ -936,43 +948,69 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
           child: SizedBox(
             width: maxWidth - width - padding.horizontal,
             height: maxHeight - padding.top,
-            child: MiniScaffold(
-              key: videoDetailController.childKey,
-              body: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  buildTabBar(
-                    introText: '相关视频',
-                    showIntro: videoDetailController.isFileSource
-                        ? true
-                        : showIntro,
-                  ),
-                  Expanded(
-                    child: tabBarView(
-                      controller: videoDetailController.tabCtr,
-                      children: [
-                        if (videoDetailController.isFileSource)
-                          localIntroPanel()
-                        else if (showIntro)
-                          KeepAliveWrapper(
-                            child: CustomScrollView(
-                              key: const PageStorageKey(CommonIntroController),
-                              controller:
-                                  videoDetailController.effectiveIntroScrollCtr,
-                              slivers: [
-                                RelatedVideoPanel(
-                                  key: videoRelatedKey,
-                                  heroTag: heroTag,
-                                ),
+            child: DefaultTabController(
+              length: 1 + (_shouldShowSeasonPanel ? 1 : 0),
+              child: Builder(
+                builder: (context) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: theme.dividerColor.withValues(alpha: 0.1),
+                            ),
+                          ),
+                        ),
+                        child: SizedBox(
+                          height: 45,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: TabBar(
+                              isScrollable: true,
+                              tabAlignment: TabAlignment.start,
+                              dividerHeight: 0,
+                              dividerColor: Colors.transparent,
+                              labelStyle: TabBarTheme.of(context)
+                                      .labelStyle
+                                      ?.copyWith(fontSize: 13) ??
+                                  const TextStyle(fontSize: 13),
+                              tabs: [
+                                const Tab(text: '相关视频'),
+                                if (_shouldShowSeasonPanel)
+                                  const Tab(text: '播放列表'),
                               ],
                             ),
                           ),
-                        if (videoDetailController.showReply) videoReplyPanel(),
-                        if (_shouldShowSeasonPanel) seasonPanel,
-                      ],
-                    ),
-                  ),
-                ],
+                        ),
+                      ),
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            if (videoDetailController.isFileSource)
+                              localIntroPanel()
+                            else
+                              KeepAliveWrapper(
+                                child: CustomScrollView(
+                                  key: const PageStorageKey(CommonIntroController),
+                                  controller:
+                                      videoDetailController.effectiveIntroScrollCtr,
+                                  slivers: [
+                                    RelatedVideoPanel(
+                                      key: videoRelatedKey,
+                                      heroTag: heroTag,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            if (_shouldShowSeasonPanel) seasonPanel,
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -1003,7 +1041,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     if (enableVerticalExpand) {
       return Obx(
         () {
-          if (videoDetailController.isVertical.value && !isPortrait) {
+          if (videoDetailController.isVertical.value &&
+              (Pref.verticalVideoDualColumnOnAlmostSquare || Pref.verticalVideoDualColumn)) {
             return childSplit(9 / 16);
           }
 
@@ -1255,13 +1294,24 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   @override
   Widget build(BuildContext context) {
     Widget child;
+    final isLandscape = maxWidth > maxHeight;
+    final isAlmostSquareOrFoldable = maxWidth / maxHeight >= 0.7 && maxWidth / maxHeight <= 1.35;
+    final isDualColumnVertical = enableVerticalExpand &&
+        videoDetailController.isVertical.value &&
+        (Pref.verticalVideoDualColumnOnAlmostSquare || Pref.verticalVideoDualColumn) &&
+        (isAlmostSquareOrFoldable || DeviceUtils.isTablet || maxWidth >= 550);
+
     if (videoDetailController.plPlayerController.isPipMode) {
       child = plPlayer(width: maxWidth, height: maxHeight, isPipMode: true);
+    } else if (isDualColumnVertical) {
+      child = childWhenDisabledAlmostSquare;
     } else if (!videoDetailController.horizontalScreen) {
       child = childWhenDisabled;
-    } else if (maxWidth / maxHeight >= kScreenRatio) {
+    } else if (maxWidth / maxHeight >= kScreenRatio || 
+               (isLandscape && (Pref.splitScreenOnFoldable || (enableVerticalExpand && videoDetailController.isVertical.value)) && maxWidth / maxHeight >= 1.05)) {
       child = childWhenDisabledLandscape;
-    } else if (maxWidth / Style.aspectRatio16x9 < 0.4 * maxHeight) {
+    } else if (maxWidth / Style.aspectRatio16x9 < 0.4 * maxHeight &&
+               !(enableVerticalExpand && videoDetailController.isVertical.value && isLandscape)) {
       child = childWhenDisabled;
     } else {
       child = childWhenDisabledAlmostSquare;
@@ -1627,6 +1677,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     double? height,
     bool? isHorizontal,
     bool needRelated = true,
+    bool needReply = false,
     bool needCtr = true,
   }) {
     if (videoDetailController.isFileSource) {
@@ -1676,6 +1727,24 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
             maxWidth: width ?? maxWidth,
             isLandscape: !isPortrait,
           ),
+        if (needReply && videoDetailController.showReply) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(
+                top: Style.safeSpace,
+              ),
+              child: Divider(
+                height: 1,
+                indent: 12,
+                endIndent: 12,
+                color: colorScheme.outline.withValues(alpha: .08),
+              ),
+            ),
+          ),
+          VideoReplySlivers(
+            heroTag: heroTag,
+          ),
+        ],
         SliverToBoxAdapter(
           child: SizedBox(
             height:
