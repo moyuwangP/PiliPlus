@@ -1006,7 +1006,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
   Widget _childWhenDisabledAlmostSquareInner(bool isFullScreen) {
     final shouldShowSeasonPanel = _shouldShowSeasonPanel;
-    final double height = maxHeight / 2.5;
+    final double height = maxWidth / Style.aspectRatio16x9;
     final videoHeight = isFullScreen
         ? maxHeight - (isWindowMode && !isPortrait ? 0 : padding.top)
         : height;
