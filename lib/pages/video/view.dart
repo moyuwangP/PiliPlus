@@ -910,8 +910,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
       return childSplit(Style.aspectRatio16x9);
     }
     final introHeight = maxHeight - height - padding.top;
-    final showIntro =
-        videoDetailController.isUgc && videoDetailController.showRelatedVideo;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -926,21 +924,20 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                 height: videoHeight,
               ),
             ),
-            if (!videoDetailController.isFileSource)
-              Offstage(
-                offstage: isFullScreen,
-                child: SizedBox(
+            Offstage(
+              offstage: isFullScreen,
+              child: SizedBox(
+                width: width,
+                height: introHeight,
+                child: videoIntro(
                   width: width,
                   height: introHeight,
-                  child: videoIntro(
-                    width: width,
-                    height: introHeight,
-                    needRelated: false,
-                    needReply: true,
-                    needCtr: true,
-                  ),
+                  needRelated: true,
+                  needReply: false,
+                  needCtr: true,
                 ),
               ),
+            ),
           ],
         ),
         Offstage(
@@ -948,69 +945,22 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
           child: SizedBox(
             width: maxWidth - width - padding.horizontal,
             height: maxHeight - padding.top,
-            child: DefaultTabController(
-              length: 1 + (_shouldShowSeasonPanel ? 1 : 0),
-              child: Builder(
-                builder: (context) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: theme.dividerColor.withValues(alpha: 0.1),
-                            ),
-                          ),
-                        ),
-                        child: SizedBox(
-                          height: 45,
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: TabBar(
-                              isScrollable: true,
-                              tabAlignment: TabAlignment.start,
-                              dividerHeight: 0,
-                              dividerColor: Colors.transparent,
-                              labelStyle: TabBarTheme.of(context)
-                                      .labelStyle
-                                      ?.copyWith(fontSize: 13) ??
-                                  const TextStyle(fontSize: 13),
-                              tabs: [
-                                const Tab(text: '相关视频'),
-                                if (_shouldShowSeasonPanel)
-                                  const Tab(text: '播放列表'),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: TabBarView(
-                          children: [
-                            if (videoDetailController.isFileSource)
-                              localIntroPanel()
-                            else
-                              KeepAliveWrapper(
-                                child: CustomScrollView(
-                                  key: const PageStorageKey(CommonIntroController),
-                                  controller:
-                                      videoDetailController.effectiveIntroScrollCtr,
-                                  slivers: [
-                                    RelatedVideoPanel(
-                                      key: videoRelatedKey,
-                                      heroTag: heroTag,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            if (_shouldShowSeasonPanel) seasonPanel,
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                },
+            child: MiniScaffold(
+              key: videoDetailController.childKey,
+              body: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  buildTabBar(showIntro: false),
+                  Expanded(
+                    child: tabBarView(
+                      controller: videoDetailController.tabCtr,
+                      children: [
+                        if (videoDetailController.showReply) videoReplyPanel(),
+                        if (_shouldShowSeasonPanel) seasonPanel,
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
